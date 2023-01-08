@@ -189,7 +189,6 @@ func LinearEquationArgument_plusI(zeta []ring.Ring, UMC_G *RingMartix, amtin []R
 
 		// g0 = sum <gm, rt_i> zeta_i
 		// g1 = sum zeta_i <gm, rt_i> (1 - 2 * b_i)
-		// TODO: should use Hadamard product to compute
 		_, err = a0.RingMatMul(gm, r)         // a = <gm, rt_i>
 		two := make([]bigint.Int, settings.d) // 2
 		two[0].SetInt(int64(2))
@@ -199,8 +198,10 @@ func LinearEquationArgument_plusI(zeta []ring.Ring, UMC_G *RingMartix, amtin []R
 		_, err = a1.RingMatScalarMul(tworing, &amtout[i]) // 2 * b_i
 		_, err = a1.RingMatMul(a0, a1)                    // 2 * a * b_i
 
-		_, err = a1.RingMatSub(a0, a1)             // a - 2 * a * b_i
-		_, err = a1.RingMatScalarMul(&zeta[i], a1) // zeta_i (a - 2 * a * b_i)
+		onehat, _ := CRTPackOne(settings.d, settings.precision, settings.q, settings.nttParams)
+		_, err = onehat.RingMatMul(a0, onehat)     // a * 1_h - 2 * a * b_i
+		_, err = a1.RingMatSub(onehat, a1)         // a * 1_h - 2 * a * b_i
+		_, err = a1.RingMatScalarMul(&zeta[i], a1) // zeta_i (a * 1_h - 2 * a * b_i)
 		_, err = g1.RingMatAdd(g1, a1)
 
 		_, err = a0.RingMatMul(a0, a0)             // a^2
@@ -394,9 +395,11 @@ func LinearEquationVerify_plus(UMC_G, ComF, f, zg, z *RingMartix, x *ring.Ring, 
 		_, _ = hi.RingMatMul(gm, &zbv[i])
 		_, _ = hi.RingMatSub(hi, xumi)
 
-		// h_i * (h_i + x)
-		// TODO: should use Hadamard product to compute
-		_, _ = xumi.RingMatScalarAdd(x, hi)
+		// h_i * (h_i + x * 1_hat)
+		onehat, _ := CRTPackOne(settings.d, settings.precision, settings.q, settings.nttParams)
+		_, _ = onehat.RingMatScalarMul(x, onehat)
+
+		_, _ = xumi.RingMatAdd(onehat, hi)
 		_, _ = hi.RingMatMul(hi, xumi)
 
 		_, _ = hi.RingMatScalarMul(&zeta[i], hi)

@@ -604,7 +604,7 @@ func LinearEquationArgument_plus_Test() {
 	amtin := make([]RingMartix, M)
 	rav := make([]RingMartix, M)
 
-	vout := make([]uint64, 2)
+	vout := make([]uint64, 1)
 
 	UMC_G, _ := SamMat_plus(0)
 
@@ -614,13 +614,12 @@ func LinearEquationArgument_plus_Test() {
 		_ = tmpring.Poly.SetCoefficients(coeffs)
 		zeta[i] = *tmpring
 
-		A, rbin, bin, _ := Mint_plus(UMC_G, 1)
+		A, rbin, bin, _ := Mint_plus(UMC_G, uint64(i+1))
 		amtin[i] = *bin
 		rav[i] = *rbin
 		Av[i] = *A
 	}
-	vout[0] = 1
-	vout[1] = 1
+	vout[0] = 3
 
 	ComF, f, zg, z, Bv, zbv, x, err := LinearEquationArgument_plus(UMC_G, Av, amtin, rav, vout, 10, 1, 1, 1, 1)
 	if err != nil {

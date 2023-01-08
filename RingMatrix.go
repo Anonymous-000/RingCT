@@ -153,6 +153,34 @@ func CRTPackInt(v uint64, d, precision uint32, q bigint.Int, nttParams *polynomi
 	return bvec, err
 }
 
+// build hat{1} = [1, 1, ..., 1]
+func CRTPackOne(d, precision uint32, q bigint.Int, nttParams *polynomial.NttParams) (*RingMartix, error) {
+	// build a tmp ring
+	r := new(ring.Ring)
+	r.N = d
+	r.Q = q
+	r.Poly, _ = polynomial.NewPolynomial(d, q, nttParams)
+
+	// build matrix
+	bvec, err := NewRingMartix(1, 1, nttParams)
+	if bvec == nil {
+		return nil, errors.New("NewRingMartix fail")
+	}
+
+	delta := d / precision
+	var i uint32
+	coeffs := make([]bigint.Int, d)
+	for i = 0; i < precision; i++ {
+		coeffs[i*delta].SetInt(int64(1))
+	}
+
+	tmp, _ := ring.CopyRing(r)
+	_ = tmp.Poly.SetCoefficients(coeffs)
+	bvec.ringvectors[0].rings[0] = *tmp
+
+	return bvec, err
+}
+
 // show ring (test function)
 func ShowRing(r *ring.Ring, coefflen uint32) {
 	if settings.debug {
