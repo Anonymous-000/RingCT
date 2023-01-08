@@ -1,26 +1,47 @@
 package main
 
 import (
-	"fmt"
 	"github.com/dedis/lago/bigint"
-	"github.com/dedis/lago/polynomial"
-	"github.com/dedis/lago/ring"
 	"testing"
 )
-
 
 func setTestSettings() {
 	d := uint32(64)
 	n := uint32(32)
 	m := uint32(64)
 	w := uint32(56)
+	w_zeta := uint32(56)
 	//q := bigint.NewIntFromString("8865920799731713")	// polynomial.GenerateNTTParams(d, q) never return, may due to factorization
 	//q := bigint.NewIntFromString("2147221513")		// Not NTT friendly (N != 1 mod 2*d)
 	//q := bigint.NewIntFromString("257")				// Fermat number (F3)
-	q := bigint.NewIntFromString("65537")			// Fermat number (F4) (no big performance difference with F3)
-	SetSettings(d, n, m, w, 64, *q, 8, 1, false)
+	q := bigint.NewIntFromString("65537") // Fermat number (F4) (no big performance difference with F3)
+	SetSettings(d, n, m, w, w_zeta, 64, *q, 8, 1, false)
 }
 
+// MatRiCT+ settings
+func setTestSettingsplus() {
+	d := uint32(256)
+	n := uint32(5)
+	m := uint32(10)
+	w := uint32(44)
+	w_zeta := uint32(44)
+	q := bigint.NewIntFromString("3489661057") // Fermat number (F4) (no big performance difference with F3)
+	SetSettings(d, n, m, w, w_zeta, 64, *q, 1, 1, false)
+}
+
+func TestCRTPackInt(t *testing.T) {
+	setTestSettingsplus()
+	amt := uint64(5)
+	bvec, err := CRTPackInt(amt, settings.d, settings.precision, settings.q, settings.nttParams)
+
+	if err != nil {
+		t.Errorf("FAIL: [TestCRTPackInt] fail.")
+		return
+	}
+	ShowRing(&bvec.ringvectors[0].rings[0], settings.d)
+}
+
+/*
 func TestHash(t *testing.T) {
 	setTestSettings()
 	r1 := new(ring.Ring)
@@ -51,6 +72,7 @@ func TestHash(t *testing.T) {
 		}
 	}
 }
+
 
 func TestMint(t *testing.T) {
 	setTestSettings()
@@ -111,3 +133,4 @@ func TestMakePij(t *testing.T) {
 
 	ShowRingVector(piv, settings.d)
 }
+*/

@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-
 func setRing() *ring.Ring {
 	n := uint32(64)
 	q := bigint.NewIntFromString("257")
@@ -19,7 +18,6 @@ func setRing() *ring.Ring {
 	r.Poly, _ = polynomial.NewPolynomial(n, *q, nttParams)
 	return r
 }
-
 
 func TestRingMatAdd(t *testing.T) {
 	n := uint32(64)
@@ -128,7 +126,7 @@ func TestRingMatIsEqual(t *testing.T) {
 	}
 
 	coeffs[0].SetInt(int64(1))
-	_ = m2.ringvectors[m2.col - 1].rings[m2.row - 1].Poly.SetCoefficients(coeffs)
+	_ = m2.ringvectors[m2.col-1].rings[m2.row-1].Poly.SetCoefficients(coeffs)
 
 	if m1.RingMatIsEqual(m2) {
 		t.Errorf("FAIL: [TestRingMatIsEqual] should not be same.")

@@ -15,7 +15,7 @@ func setBalanceSetting(M, S uint32) (Ga, Gb *RingMartix, Av, amtin []RingMartix,
 	invalue := outvalue * uint64(S) / uint64(M)
 
 	va := settings.precision
-	vb := 2 * settings.precision * (S + 1) - 2
+	vb := 2*settings.precision*(S+1) - 2
 	Ga, _ = SamMat(va, 0)
 	Gb, _ = SamMat(vb, 0)
 
@@ -48,7 +48,7 @@ func setOneOutOfManySetting(beta, k, l uint32) (Ga, Gb, pr *RingMartix, Pv []Rin
 	r.Poly, _ = polynomial.NewPolynomial(settings.d, settings.q, settings.nttParams)
 
 	va := beta
-	vb := k * va + settings.m
+	vb := k*va + settings.m
 	Ga, _ = SamMat(va, 0)
 	Gb, _ = SamMat(vb, 0)
 
@@ -77,8 +77,8 @@ func TestBalanceProof(t *testing.T) {
 
 		Ga, Gb, Av, amtin, vout := setBalanceSetting(M, S)
 
-		ComB, ComC, f, zb, zc, Bv, zoutv, x, _:= BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
-		result, err:= BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc, Av, Bv, zoutv, x)
+		ComB, ComC, f, zb, zc, Bv, zoutv, x, _ := BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
+		result, err := BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc, Av, Bv, zoutv, x)
 
 		if err != nil {
 			t.Errorf("Error: [TestBalanceProof] at M=%v, S=%v. %s", M, S, err)
@@ -93,8 +93,8 @@ func TestBalanceProof(t *testing.T) {
 }
 
 func TestOneOutOfManyProof(t *testing.T) {
-	bv :=[]uint32 {2, 8, 16, 32, 3}
-	kv :=[]uint32 {1, 1, 1, 1, 4}
+	bv := []uint32{2, 8, 16, 32, 3}
+	kv := []uint32{1, 1, 1, 1, 4}
 	l := uint32(0)
 
 	for i := range bv {
@@ -134,6 +134,7 @@ func BenchmarkBalanceProofM1S1(b *testing.B) {
 		}
 	})
 }
+
 // M = 1; S = 1
 func BenchmarkBalanceVerifyM1S1(b *testing.B) {
 	b.ResetTimer()
@@ -143,7 +144,7 @@ func BenchmarkBalanceVerifyM1S1(b *testing.B) {
 
 	Ga, Gb, Av, amtin, vout := setBalanceSetting(M, S)
 
-	ComB, ComC, f, zb, zc, Bv, zoutv, x, _:= BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
+	ComB, ComC, f, zb, zc, Bv, zoutv, x, _ := BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
 	//ComB, ComC, f, zb, zc, Bv, zoutv, x, _, _, _ := BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
 
 	b.ReportAllocs()
@@ -155,6 +156,7 @@ func BenchmarkBalanceVerifyM1S1(b *testing.B) {
 		}
 	})
 }
+
 // M = 1; S = 2
 func BenchmarkBalanceProofM1S2(b *testing.B) {
 	b.ResetTimer()
@@ -172,6 +174,7 @@ func BenchmarkBalanceProofM1S2(b *testing.B) {
 		}
 	})
 }
+
 // M = 1; S = 2
 func BenchmarkBalanceVerifyM1S2(b *testing.B) {
 	b.ResetTimer()
@@ -181,7 +184,7 @@ func BenchmarkBalanceVerifyM1S2(b *testing.B) {
 
 	Ga, Gb, Av, amtin, vout := setBalanceSetting(M, S)
 
-	ComB, ComC, f, zb, zc, Bv, zoutv, x, _:= BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
+	ComB, ComC, f, zb, zc, Bv, zoutv, x, _ := BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
 	//ComB, ComC, f, zb, zc, Bv, zoutv, x, _, _, _ := BalanceProof(Ga, Gb, Av, amtin, vout, 20, 14, 2)
 
 	b.ReportAllocs()
@@ -193,7 +196,6 @@ func BenchmarkBalanceVerifyM1S2(b *testing.B) {
 		}
 	})
 }
-
 
 // N = 2; beta = 2; k = 1
 func BenchmarkOneOutOfManyProofN2(b *testing.B) {
@@ -213,6 +215,7 @@ func BenchmarkOneOutOfManyProofN2(b *testing.B) {
 		}
 	})
 }
+
 // N = 2; beta = 2; k = 1
 func BenchmarkOneOutOfManyVerifyN2(b *testing.B) {
 	b.ResetTimer()
@@ -233,6 +236,7 @@ func BenchmarkOneOutOfManyVerifyN2(b *testing.B) {
 		}
 	})
 }
+
 // N = 8; beta = 8; k = 1
 func BenchmarkOneOutOfManyProofN8(b *testing.B) {
 	b.ResetTimer()
@@ -251,6 +255,7 @@ func BenchmarkOneOutOfManyProofN8(b *testing.B) {
 		}
 	})
 }
+
 // N = 8; beta = 8; k = 1
 func BenchmarkOneOutOfManyVerifyN8(b *testing.B) {
 	b.ResetTimer()
@@ -271,6 +276,7 @@ func BenchmarkOneOutOfManyVerifyN8(b *testing.B) {
 		}
 	})
 }
+
 // N = 16; beta = 16; k = 1
 func BenchmarkOneOutOfManyProofN16(b *testing.B) {
 	b.ResetTimer()
@@ -289,6 +295,7 @@ func BenchmarkOneOutOfManyProofN16(b *testing.B) {
 		}
 	})
 }
+
 // N = 16; beta = 16; k = 1
 func BenchmarkOneOutOfManyVerifyN16(b *testing.B) {
 	b.ResetTimer()
@@ -309,6 +316,7 @@ func BenchmarkOneOutOfManyVerifyN16(b *testing.B) {
 		}
 	})
 }
+
 // N = 32; beta = 32; k = 1
 func BenchmarkOneOutOfManyProofN32(b *testing.B) {
 	b.ResetTimer()
@@ -327,6 +335,7 @@ func BenchmarkOneOutOfManyProofN32(b *testing.B) {
 		}
 	})
 }
+
 // N = 32; beta = 32; k = 1
 func BenchmarkOneOutOfManyVerifyN32(b *testing.B) {
 	b.ResetTimer()
@@ -347,6 +356,7 @@ func BenchmarkOneOutOfManyVerifyN32(b *testing.B) {
 		}
 	})
 }
+
 // N = 64; beta = 4; k = 3
 func BenchmarkOneOutOfManyProofN64(b *testing.B) {
 	b.ResetTimer()
@@ -365,6 +375,7 @@ func BenchmarkOneOutOfManyProofN64(b *testing.B) {
 		}
 	})
 }
+
 // N = 64; beta = 4; k = 3
 func BenchmarkOneOutOfManyVerifyN64(b *testing.B) {
 	b.ResetTimer()

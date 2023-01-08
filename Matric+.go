@@ -43,7 +43,7 @@ func LinearEquationArgument(Ga, Gb *RingMartix, Av, amtin, rav []RingMartix, vou
 
 // Algorithm 2 prover's side before receiving x
 func LinearEquationArgumentI(Ga, Gb *RingMartix, amtin []RingMartix, vout []uint64, Bt, Bd, Brd int) (ComD, ComE, ComF, rt, rb, b, c, d, t, rd *RingMartix, Bv, Gv, rbv, rtv []RingMartix, err error) {
-	var i,j uint32
+	var i, j uint32
 	nttParams := settings.nttParams
 	S := uint32(len(vout))
 	M := uint32(len(amtin))
@@ -54,7 +54,7 @@ func LinearEquationArgumentI(Ga, Gb *RingMartix, amtin []RingMartix, vout []uint
 	amtout := make([]RingMartix, S)
 
 	// build b = (amtout_0, ..., amtout_{S-1})
-	b, err = NewRingMartix(S * amtin[0].col, 1, nttParams)
+	b, err = NewRingMartix(S*amtin[0].col, 1, nttParams)
 	if b == nil {
 		err = errors.New("NewRingMartix fail")
 		return
@@ -94,7 +94,7 @@ func LinearEquationArgumentI(Ga, Gb *RingMartix, amtin []RingMartix, vout []uint
 		c.ringvectors[i].rings[0] = *tmpring
 	}
 
-	// build d. d_0 = - sum_{0<i<c.col} d_i * 2^i
+	// build d
 	d, _ = NewRingMartix(c.col, 1, nttParams)
 	if d == nil {
 		err = errors.New("NewRingMartix fail")
@@ -146,7 +146,7 @@ func LinearEquationArgumentI(Ga, Gb *RingMartix, amtin []RingMartix, vout []uint
 	// G_i = Com(t_i; r_{t, i})
 	for i = 0; i < S; i++ {
 		for j = 0; j < ti.col; j++ {
-			ti.ringvectors[j].rings = t.ringvectors[i * tisize + j].rings
+			ti.ringvectors[j].rings = t.ringvectors[i*tisize+j].rings
 		}
 
 		Gtmp, rtitmp, _ := Commitment(Ga, ti, Brd)
@@ -332,7 +332,7 @@ func LinearEquationVerify(Ga, Gb, ComE, f, g, z, zg *RingMartix, x *ring.Ring, A
 	}
 
 	// F = Com(g, h; z_g) - x * E
-	gh, err := NewRingMartix(g.col + h.col, 1, nttParams)
+	gh, err := NewRingMartix(g.col+h.col, 1, nttParams)
 	if gh == nil {
 		return
 	}
@@ -346,7 +346,6 @@ func LinearEquationVerify(Ga, Gb, ComE, f, g, z, zg *RingMartix, x *ring.Ring, A
 	_, err = xE.RingMatScalarMul(x, ComE)
 	ComF, err := xE.RingMatSub(Comgh, xE)
 
-
 	// G_i = Com(g_i; z_{b, i}) - x * E
 	Gv := make([]RingMartix, S)
 	gi, err := NewRingMartix(settings.precision, 1, nttParams)
@@ -358,7 +357,7 @@ func LinearEquationVerify(Ga, Gb, ComE, f, g, z, zg *RingMartix, x *ring.Ring, A
 	for i = 0; i < S; i++ {
 		// get f_out^(i)'s
 		for j = 0; j < gi.col; j++ {
-			gi.ringvectors[j].rings = g.ringvectors[i * settings.precision + j].rings
+			gi.ringvectors[j].rings = g.ringvectors[i*settings.precision+j].rings
 		}
 		var tmp *RingMartix
 		if zbv != nil {
@@ -406,7 +405,7 @@ func LinearEquationVerify(Ga, Gb, ComE, f, g, z, zg *RingMartix, x *ring.Ring, A
 // N = beta^k = len(P)
 // Ga	: the n*(beta+m)-size matrix for Com(0; rho_i)
 // Gb	: the n*(k*beta+m) is for BinaryCommitForDelta
-func LinearSumProof(Ga, Gb, r *RingMartix,l, k, beta uint32, P []RingMartix, Bdelta, Brdelta int) (B, f, zb, zr *RingMartix, Ev []RingMartix, x *ring.Ring, err error) {
+func LinearSumProof(Ga, Gb, r *RingMartix, l, k, beta uint32, P []RingMartix, Bdelta, Brdelta int) (B, f, zb, zr *RingMartix, Ev []RingMartix, x *ring.Ring, err error) {
 	var i, j uint32
 	nttParams := settings.nttParams
 	N := uint32(len(P))
@@ -430,14 +429,14 @@ func LinearSumProof(Ga, Gb, r *RingMartix,l, k, beta uint32, P []RingMartix, Bde
 
 		pv[i] = MakePij(aiv, deltaiv)
 
-		DebugPrint("pv" + fmt.Sprint(i), pv[i])
+		DebugPrint("pv"+fmt.Sprint(i), pv[i])
 	}
 
 	Ev, rhov, err := MakeEj(Ga, pv, P, beta)
 
 	for i := range Ev {
-		DebugPrint("Ev" + fmt.Sprint(i), Ev[i])
-		DebugPrint("rhov" + fmt.Sprint(i), rhov[i])
+		DebugPrint("Ev"+fmt.Sprint(i), Ev[i])
+		DebugPrint("rhov"+fmt.Sprint(i), rhov[i])
 	}
 
 	// x = Hash(A, B, (P_i), (Ev_i))
@@ -517,7 +516,7 @@ func LinearSumVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix, x 
 		_ = tmpring.Poly.SetCoefficients(coeffs)
 
 		for i = 0; i < beta; i++ {
-			_, _ = tmpring.Add(tmpring, &f.ringvectors[j * beta + i].rings[0])
+			_, _ = tmpring.Add(tmpring, &f.ringvectors[j*beta+i].rings[0])
 		}
 
 		cor1 := x.Poly.GetCoefficients()
@@ -544,10 +543,10 @@ func LinearSumVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix, x 
 		iv := ConvertToBase(i, k, beta)
 
 		for j = 0; j < k; j++ {
-			_, _ = tmpring.MulPoly(tmpring, &f.ringvectors[j * beta + iv[j]].rings[0])
+			_, _ = tmpring.MulPoly(tmpring, &f.ringvectors[j*beta+iv[j]].rings[0])
 		}
 
-		DebugPrint("prod_j f_{j," + fmt.Sprint(i) + "_j}", tmpring)
+		DebugPrint("prod_j f_{j,"+fmt.Sprint(i)+"_j}", tmpring)
 
 		// tmp = tmpring * P[i]
 		tmp, _ := NewRingMartix(ComB.col, ComB.row, nttParams)
@@ -579,7 +578,7 @@ func LinearSumVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix, x 
 	xtmp, _ := ring.CopyRing(x)
 	err = xtmp.Poly.SetCoefficients(x.Poly.GetCoefficients())
 
-	for i = 0; i < k - 1; i++ {
+	for i = 0; i < k-1; i++ {
 		tmp, _ := NewRingMartix(Ev[0].col, Ev[0].row, settings.nttParams)
 		if tmp == nil {
 			err = errors.New("NewRingMartix fail")

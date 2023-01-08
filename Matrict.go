@@ -31,7 +31,7 @@ func BalanceProof(Ga, Gb *RingMartix, Av, amtin []RingMartix, vout []uint64, Ba,
 	vbits := make([]RingMartix, S)
 
 	// build out = (vbits_0, ..., vbits_{S-1})
-	out, err := NewRingMartix(S * amtin[0].col, 1, nttParams)
+	out, err := NewRingMartix(S*amtin[0].col, 1, nttParams)
 	if out == nil {
 		err = errors.New("only support 1 input and <= 2 outputs")
 		return
@@ -79,7 +79,7 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 	var i, j uint32
 	// outc = (amtout, c)
 	nttParams := settings.nttParams
-	outc, err := NewRingMartix(amtout.col + c.col, 1, nttParams)
+	outc, err := NewRingMartix(amtout.col+c.col, 1, nttParams)
 	if outc == nil {
 		return
 	}
@@ -88,7 +88,7 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 	A, B, ra, rb, a, err = BinaryCommit(Gb, outc, Ba, Bra)
 
 	// Compute G_i's and r_g^(i)'s
-	S := (a.col + 1) / settings.precision - 1
+	S := (a.col+1)/settings.precision - 1
 	Gv = make([]RingMartix, S)
 	rgv = make([]RingMartix, S)
 	ai, err := NewRingMartix(settings.precision, 1, nttParams)
@@ -99,7 +99,7 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 
 	for i = 0; i < S; i++ {
 		for j = 0; j < ai.col; j++ {
-			ai.ringvectors[j].rings = a.ringvectors[i * settings.precision + j].rings
+			ai.ringvectors[j].rings = a.ringvectors[i*settings.precision+j].rings
 		}
 
 		Gtmp, rgtmp, _ := Commitment(Ga, ai, Brd)
@@ -115,7 +115,7 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 		return
 	}
 	for i = 0; i < ac.col; i++ {
-		ac.ringvectors[i].rings = a.ringvectors[i + amtout.col].rings
+		ac.ringvectors[i].rings = a.ringvectors[i+amtout.col].rings
 	}
 
 	// build c_i - 2 * c_{i + 1} and a_{c, i} - 2 * a_{c, i + 1} from c and a_c
@@ -127,12 +127,12 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 	coeffs[0].SetInt(int64(2))
 	_ = tworing.Poly.SetCoefficients(coeffs)
 
-	a2a, err := NewRingMartix(ac.col + 1, 1, nttParams)
+	a2a, err := NewRingMartix(ac.col+1, 1, nttParams)
 	if a2a == nil {
 		return
 	}
 
-	c2c, err := NewRingMartix(c.col + 1, 1, nttParams)
+	c2c, err := NewRingMartix(c.col+1, 1, nttParams)
 	if c2c == nil {
 		return
 	}
@@ -140,7 +140,7 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 	for i = 0; i < a2a.col; i++ {
 		atmpring, _ := ring.CopyRing(zeroring)
 		ctmpring, _ := ring.CopyRing(zeroring)
-		if i == a2a.col - 1 {
+		if i == a2a.col-1 {
 			// 2 * a_{c, r} = 2 * c_r = 0
 			_ = atmpring.Poly.SetCoefficients(zeroring.Poly.GetCoefficients())
 			_ = ctmpring.Poly.SetCoefficients(zeroring.Poly.GetCoefficients())
@@ -153,8 +153,8 @@ func BalanceProofI(Ga, Gb, amtout, c *RingMartix, Ba, Bra, Brd int) (A, B, C, D,
 			_, err = atmpring.Sub(zeroring, atmpring)
 			_, err = ctmpring.Sub(zeroring, ctmpring)
 		} else {
-			_, err = atmpring.Sub(&ac.ringvectors[i - 1].rings[0], atmpring)
-			_, err = ctmpring.Sub(&c.ringvectors[i - 1].rings[0], ctmpring)
+			_, err = atmpring.Sub(&ac.ringvectors[i-1].rings[0], atmpring)
+			_, err = ctmpring.Sub(&c.ringvectors[i-1].rings[0], ctmpring)
 		}
 
 		a2a.ringvectors[i].rings[0] = *atmpring
@@ -189,8 +189,8 @@ func BalanceProofII(x *ring.Ring, amtout, c, a, rb, ra, rc, rd *RingMartix, rbv,
 	for i = 0; i < c.col; i++ {
 		tmpring, _ := ring.CopyRing(x)
 		_, _ = tmpring.MulPoly(x, &c.ringvectors[i].rings[0])
-		_, _ = tmpring.Add(tmpring, &a.ringvectors[i + amtout.col].rings[0])
-		f.ringvectors[i + amtout.col].rings[0] = *tmpring
+		_, _ = tmpring.Add(tmpring, &a.ringvectors[i+amtout.col].rings[0])
+		f.ringvectors[i+amtout.col].rings[0] = *tmpring
 	}
 
 	// build g
@@ -271,7 +271,7 @@ func BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc *RingMartix, Av, Bv, zoutv []Ri
 	}
 
 	// A = Com(f, g; zb) - x * B
-	fg, err := NewRingMartix(f.col + g.col, 1, nttParams)
+	fg, err := NewRingMartix(f.col+g.col, 1, nttParams)
 	if fg == nil {
 		return
 	}
@@ -288,14 +288,14 @@ func BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc *RingMartix, Av, Bv, zoutv []Ri
 
 	// get f_c in f
 	S := uint32(len(Bv))
-	fcsize := (f.col + 1) / (S + 1) - 1 // should be v - 1 = 63
-	offset := S * (fcsize + 1)			// should be v * S = 64 * S
+	fcsize := (f.col+1)/(S+1) - 1 // should be v - 1 = 63
+	offset := S * (fcsize + 1)    // should be v * S = 64 * S
 	fc, err := NewRingMartix(fcsize, 1, nttParams)
 	if fc == nil {
 		return
 	}
 	for i = 0; i < fc.col; i++ {
-		fc.ringvectors[i].rings = f.ringvectors[i + offset].rings
+		fc.ringvectors[i].rings = f.ringvectors[i+offset].rings
 	}
 
 	coeffs := make([]bigint.Int, settings.d)
@@ -306,14 +306,14 @@ func BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc *RingMartix, Av, Bv, zoutv []Ri
 	_ = tworing.Poly.SetCoefficients(coeffs)
 
 	// f2f_{i} = f_{c, i} - 2 * f_{c, i + 1}
-	f2f, err := NewRingMartix(fc.col + 1, 1, nttParams)
+	f2f, err := NewRingMartix(fc.col+1, 1, nttParams)
 	if f2f == nil {
 		return
 	}
 
 	for i = 0; i < f2f.col; i++ {
 		ftmpring, _ := ring.CopyRing(zeroring)
-		if i == f2f.col - 1 {
+		if i == f2f.col-1 {
 			// 2 * f_{c, r} = 0
 			_ = ftmpring.Poly.SetCoefficients(zeroring.Poly.GetCoefficients())
 		} else {
@@ -323,7 +323,7 @@ func BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc *RingMartix, Av, Bv, zoutv []Ri
 		if i == 0 {
 			_, err = ftmpring.Sub(zeroring, ftmpring)
 		} else {
-			_, err = ftmpring.Sub(&fc.ringvectors[i - 1].rings[0], ftmpring)
+			_, err = ftmpring.Sub(&fc.ringvectors[i-1].rings[0], ftmpring)
 		}
 
 		f2f.ringvectors[i].rings[0] = *ftmpring
@@ -350,7 +350,7 @@ func BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc *RingMartix, Av, Bv, zoutv []Ri
 	for i = 0; i < S; i++ {
 		// get f_out^(i)'s
 		for j = 0; j < fi.col; j++ {
-			fi.ringvectors[j].rings = f.ringvectors[i * settings.precision + j].rings
+			fi.ringvectors[j].rings = f.ringvectors[i*settings.precision+j].rings
 		}
 		ComFtmp, _ := CommitmentWithRandom(Ga, fi, &zoutv[i])
 
@@ -395,7 +395,7 @@ func BalanceVerify(Ga, Gb, ComB, ComC, f, zb, zc *RingMartix, Av, Bv, zoutv []Ri
 // N = beta^k = len(P)
 // Ga	: the n*(beta+m)-size matrix for Com(0; rho_i)
 // Gb	: the n*(2*k*beta+m) is for BinaryCommitForDelta
-func OneOutOfManyProof(Ga, Gb, r *RingMartix,l, k, beta uint32, P []RingMartix, Bdelta, Brdelta int) (B, f, zb, zr *RingMartix, Ev []RingMartix, x *ring.Ring, err error) {
+func OneOutOfManyProof(Ga, Gb, r *RingMartix, l, k, beta uint32, P []RingMartix, Bdelta, Brdelta int) (B, f, zb, zr *RingMartix, Ev []RingMartix, x *ring.Ring, err error) {
 	var i, j uint32
 	nttParams := settings.nttParams
 	N := uint32(len(P))
@@ -419,14 +419,14 @@ func OneOutOfManyProof(Ga, Gb, r *RingMartix,l, k, beta uint32, P []RingMartix, 
 
 		pv[i] = MakePij(aiv, deltaiv)
 
-		DebugPrint("pv" + fmt.Sprint(i), pv[i])
+		DebugPrint("pv"+fmt.Sprint(i), pv[i])
 	}
 
 	Ev, rhov, err := MakeEj(Ga, pv, P, beta)
 
 	for i := range Ev {
-		DebugPrint("Ev" + fmt.Sprint(i), Ev[i])
-		DebugPrint("rhov" + fmt.Sprint(i), rhov[i])
+		DebugPrint("Ev"+fmt.Sprint(i), Ev[i])
+		DebugPrint("rhov"+fmt.Sprint(i), rhov[i])
 	}
 
 	// x = Hash(A, B, (P_i), (Ev_i))
@@ -503,7 +503,7 @@ func OneOutOfManyVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix,
 	}
 
 	// A = Com(f, g; zb) - x * B
-	fg, err := NewRingMartix(f.col + g.col, 1, nttParams)
+	fg, err := NewRingMartix(f.col+g.col, 1, nttParams)
 	if fg == nil {
 		return
 	}
@@ -525,7 +525,7 @@ func OneOutOfManyVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix,
 		_ = tmpring.Poly.SetCoefficients(coeffs)
 
 		for i = 0; i < beta; i++ {
-			_, _ = tmpring.Add(tmpring, &f.ringvectors[j * beta + i].rings[0])
+			_, _ = tmpring.Add(tmpring, &f.ringvectors[j*beta+i].rings[0])
 		}
 
 		cor1 := x.Poly.GetCoefficients()
@@ -552,10 +552,10 @@ func OneOutOfManyVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix,
 		iv := ConvertToBase(i, k, beta)
 
 		for j = 0; j < k; j++ {
-			_, _ = tmpring.MulPoly(tmpring, &f.ringvectors[j * beta + iv[j]].rings[0])
+			_, _ = tmpring.MulPoly(tmpring, &f.ringvectors[j*beta+iv[j]].rings[0])
 		}
 
-		DebugPrint("prod_j f_{j," + fmt.Sprint(i) + "_j}", tmpring)
+		DebugPrint("prod_j f_{j,"+fmt.Sprint(i)+"_j}", tmpring)
 
 		// tmp = tmpring * P[i]
 		tmp, _ := NewRingMartix(ComB.col, ComB.row, nttParams)
@@ -587,7 +587,7 @@ func OneOutOfManyVerify(Ga, Gb, ComB, f, zb, zr *RingMartix, P, Ev []RingMartix,
 	xtmp, _ := ring.CopyRing(x)
 	err = xtmp.Poly.SetCoefficients(x.Poly.GetCoefficients())
 
-	for i = 0; i < k - 1; i++ {
+	for i = 0; i < k-1; i++ {
 		tmp, _ := NewRingMartix(Ev[0].col, Ev[0].row, settings.nttParams)
 		if tmp == nil {
 			err = errors.New("NewRingMartix fail")

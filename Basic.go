@@ -14,11 +14,15 @@ import (
 )
 
 type MartixSettings struct {
-	d, n, m, w, precision 	uint32
-	q 						bigint.Int
-	p, B 					int
-	nttParams 				*polynomial.NttParams
-	debug					bool
+	// MatRiCT settings
+	d, n, m, w, precision uint32
+	q                     bigint.Int
+	p, B                  int
+	nttParams             *polynomial.NttParams
+	debug                 bool
+
+	// additional settings for MatRiCT+
+	w_zeta uint32
 }
 
 var settings *MartixSettings
@@ -44,16 +48,16 @@ func DebugPrint(name string, data interface{}) {
 	}
 }
 
-func SetSettings(d, n, m, w, precision uint32, q bigint.Int, p, B int, debug bool) *MartixSettings {
+func SetSettings(d, n, m, w, w_zeta, precision uint32, q bigint.Int, p, B int, debug bool) *MartixSettings {
 	nttParams := polynomial.GenerateNTTParams(d, q)
-	settings = &MartixSettings{d,n,m,w,precision,q,p,B,nttParams, debug}
+	settings = &MartixSettings{d, n, m, w, precision, q, p, B, nttParams, debug, w_zeta}
 	return settings
 }
 
 // the naive implementation of H to return a ring in C_{w, p}^d
 // the collision of this function is high, may consider a better mapping
 func Hash(msg []byte, x *ring.Ring) {
-	// high collision function, may consider better mapping
+	//high collision function, may consider better mapping
 	hashed := md5.Sum(msg)
 	var b = hashed[:8]
 	seed := int64(binary.LittleEndian.Uint64(b))
@@ -62,18 +66,48 @@ func Hash(msg []byte, x *ring.Ring) {
 	// get w different elements from d
 	p := rand.Perm(int(settings.d))
 	for _, loc := range p[:settings.w] {
-		rnd := rand.Intn(2 * settings.p + 1)
+		rnd := rand.Intn(2*settings.p + 1)
 		rnd = rnd - settings.p
 		coeffs[loc].SetInt(int64(rnd))
 		coeffs[loc].Mod(&coeffs[loc], &settings.q)
 	}
 
-	_ = x.Poly.SetCoefficients(coeffs)
-
-	// for testing (x = 2)
+	// for testing
 	//coeffs := make([]bigint.Int, settings.d)
-	//coeffs[0].SetInt(2)
+	//coeffs[0].SetInt(1)
+	//
 	//_ = x.Poly.SetCoefficients(coeffs)
+	return
+}
+
+// zeta_i in C'
+// || zeta_i ||_inf = 1, || zeta_i ||_1 = w_zeta
+func BuildZeta(msg []byte, zeta []ring.Ring, r *ring.Ring) {
+	hashed := md5.Sum(msg)
+	var b = hashed[:8]
+	seed := int64(binary.LittleEndian.Uint64(b))
+	coeffs := make([]bigint.Int, settings.d)
+	rand.Seed(seed)
+	// get w different elements from d
+	for i := 0; i < len(zeta); i++ {
+		p := rand.Perm(int(settings.d))
+		for _, loc := range p[:settings.w_zeta] {
+			coeffs[loc].SetInt(int64(1))
+		}
+		tmpring, _ := ring.CopyRing(r)
+		_ = tmpring.Poly.SetCoefficients(coeffs)
+		zeta[i] = *tmpring
+		seed++
+		rand.Seed(seed)
+	}
+
+	// for test
+	//coeffs := make([]bigint.Int, settings.d)
+	//coeffs[0].SetInt(1)
+	//tmpring, _ := ring.CopyRing(r)
+	//_ = tmpring.Poly.SetCoefficients(coeffs)
+	//zeta[0] = *tmpring
+
 	return
 }
 
@@ -143,6 +177,82 @@ func Open(G, com, msg, r *RingMartix, y *ring.Ring) bool {
 	return com.RingMatIsEqual(recom)
 }
 
+// G = (G0, gm)
+// G size	: n * m
+// G0_size	: (n - 1) * m
+// gm:		: 1 * m
+// r size	: m
+// msg size : 1
+// Commitment function Com(msg; r) = G * (r, msg)
+func UMCCom(G, msg *RingMartix, bound int) (*RingMartix, *RingMartix, error) {
+	if msg.row != 1 || msg.col != 1 {
+		return nil, nil, errors.New("m should be one Rq element")
+	}
+
+	// build r (we allow r == nil for test)
+	nttParams := settings.nttParams
+	m := G.row
+	r, _ := NewRingMartix(m, 1, nttParams)
+	if r != nil {
+		seed := time.Now().UnixNano() // may consider more secure seeds
+		if bound < 0 {
+			r.SetRandomQRingMartix(&G.ringvectors[0].rings[0], seed, settings.d, settings.q)
+		} else {
+			r.SetRandomBRingMartix(&G.ringvectors[0].rings[0], seed, settings.d, bound, false)
+		}
+	}
+
+	com, err := UMCComWithRandom(G, msg, r)
+	return com, r, err
+}
+
+// UMC(m;r)
+func UMCComWithRandom(G, msg, r *RingMartix) (*RingMartix, error) {
+	com, err := NewRingMartix(G.col, 1, settings.nttParams)
+	if com == nil || err != nil {
+		return nil, err
+	}
+
+	com.SetRingMartix(&G.ringvectors[0].rings[0])
+
+	com, err = com.RingMatMul(G, r)
+
+	// zmsg  = (0, msg)
+	zero, err := NewRingMartix(G.col-1, 1, settings.nttParams)
+	if zero == nil {
+		err = errors.New("NewRingMartix fail")
+		return nil, err
+	}
+	zero.SetZeroRingMartix(&G.ringvectors[0].rings[0], settings.d)
+
+	zmsg, err := NewRingMartix(G.col, 1, settings.nttParams)
+
+	_, err = zmsg.RingMatCombine(zero, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	// com = G  * rmsg
+	com, err = com.RingMatAdd(com, zmsg)
+	return com, err
+}
+
+// if y != nil	: Com(msg; r) =? y * G
+// else			: Com(msg; r) =? G
+func UMCOpen(G, com, msg, r *RingMartix, y *ring.Ring) bool {
+	recom, err := UMCComWithRandom(G, msg, r)
+	if err != nil {
+		return false
+	}
+
+	// com = y * com
+	if y != nil {
+		_, _ = com.RingMatScalarMul(y, com)
+	}
+
+	return com.RingMatIsEqual(recom)
+}
+
 // SamMat function (Algorithm 1)
 func SamMat(v uint32, seed int64) (*RingMartix, error) {
 	m := settings.m
@@ -171,11 +281,71 @@ func SamMat(v uint32, seed int64) (*RingMartix, error) {
 	return G, err
 }
 
+func SamMat_plus(seed int64) (*RingMartix, error) {
+	m := settings.m
+	n := settings.n
+	nttParams := settings.nttParams
+	d := settings.d
+	q := settings.q
+
+	if n == 0 || m == 0 {
+		return nil, errors.New("n, m should not be 0")
+	}
+
+	// r as a tmp ring on Rq = Zq[X] / [X^d + 1]
+	r := new(ring.Ring)
+	r.N = d
+	r.Q = q
+	r.Poly, _ = polynomial.NewPolynomial(d, q, nttParams)
+
+	G, err := NewRingMartix(n, m, nttParams)
+	if G == nil {
+		return nil, errors.New("NewRingMartix fail")
+	}
+
+	G.SetRandomQRingMartix(r, seed, settings.d, settings.q)
+
+	//for test
+	//G.SetRandomBRingMartix(r, seed, settings.d, 1, false)
+	//G.ShowMatrix(settings.d)
+	return G, err
+}
+
 // Mint function (Algorithm 5)
 func Mint(G *RingMartix, amt uint64) (cn, cnk, bits *RingMartix, err error) {
 	bits, err = ConvertIntToRingBits(amt, settings.d, settings.precision, settings.q, settings.nttParams)
 	cn, cnk, err = Commitment(G, bits, settings.B)
 	return
+}
+
+// Mint function in MatRiCT+ (Algorithm 3)
+func Mint_plus(G *RingMartix, amt uint64) (cn, cnk, vpack *RingMartix, err error) {
+	vpack, _ = CRTPackInt(amt, settings.d, settings.precision, settings.q, settings.nttParams)
+	cn, cnk, err = UMCCom(G, vpack, settings.B)
+	return
+}
+
+// f = [f_0, ..., f_r-1]
+// sum 2^i f_i =? 0
+func CheckPackedf(f *RingMartix) bool {
+	var i, j uint32
+	delta := settings.d / settings.precision
+	coeffs := f.ringvectors[0].rings[0].Poly.GetCoefficients()
+	result := make([]bigint.Int, delta)
+	zero := make([]bigint.Int, delta)
+
+	for j = 0; j < delta; j++ {
+		for i = 0; i < settings.precision; i++ {
+			tmp := new(bigint.Int)
+			tmp.Lsh(&coeffs[delta*i+j], i) // f_i * 2^i
+			result[j].Add(&result[j], tmp)
+		}
+		result[j].Mod(&result[j], &settings.q)
+		if !result[j].EqualTo(&zero[j]) {
+			return false
+		}
+	}
+	return true
 }
 
 // BinaryCommit function (not for delta) (Algorithm 6)
@@ -219,7 +389,7 @@ func CommitForDelta(G *RingMartix, deltav []RingMartix, Bdelta, Brdelta int, isb
 	}
 
 	// delta = (deltav[0], ..., deltav[k - 1])
-	delta, err = NewRingMartix(uint32(k) * deltav[0].col, 1, nttParams)
+	delta, err = NewRingMartix(uint32(k)*deltav[0].col, 1, nttParams)
 	if delta == nil {
 		err = errors.New("NewRingMartix fail")
 		return
@@ -227,7 +397,7 @@ func CommitForDelta(G *RingMartix, deltav []RingMartix, Bdelta, Brdelta int, isb
 	delta.col = 0 // a _trick_ to make RingMatCombine work when i = 0
 
 	// a = (av[0], ..., av[k - 1])
-	a, err = NewRingMartix(uint32(k) * deltav[0].col, 1, nttParams)
+	a, err = NewRingMartix(uint32(k)*deltav[0].col, 1, nttParams)
 	if a == nil {
 		err = errors.New("NewRingMartix fail")
 		return
@@ -292,7 +462,7 @@ func BinaryCommitWithA(G, a, b *RingMartix, Ba, Bra int) (A, B, ra, rb *RingMart
 	_, err = d.RingMatScalarMul(nonering, d)
 
 	// bc = (b, c)
-	bc, err := NewRingMartix(b.col + c.col, 1, nttParams)
+	bc, err := NewRingMartix(b.col+c.col, 1, nttParams)
 	if bc == nil {
 		err = errors.New("NewRingMartix fail")
 		return
@@ -302,7 +472,7 @@ func BinaryCommitWithA(G, a, b *RingMartix, Ba, Bra int) (A, B, ra, rb *RingMart
 	B, rb, err = Commitment(G, bc, settings.B)
 
 	// ad = (a, d)
-	ad, err := NewRingMartix(a.col + d.col, 1, nttParams)
+	ad, err := NewRingMartix(a.col+d.col, 1, nttParams)
 	if ad == nil {
 		err = errors.New("NewRingMartix fail")
 		return
@@ -318,7 +488,7 @@ func BinaryCommitWithA(G, a, b *RingMartix, Ba, Bra int) (A, B, ra, rb *RingMart
 func Corrector(amtin, amtout []RingMartix) (*RingMartix, error) {
 	var i uint32
 	nttParams := settings.nttParams
-	c, err := NewRingMartix(amtin[0].col - 1, 1, nttParams)
+	c, err := NewRingMartix(amtin[0].col-1, 1, nttParams)
 	if c == nil {
 		return nil, err
 	}
@@ -328,16 +498,16 @@ func Corrector(amtin, amtout []RingMartix) (*RingMartix, error) {
 	for i = 0; i < c.col; i++ {
 		tmpring, _ := ring.CopyRing(&amtin[0].ringvectors[0].rings[0])
 		_ = tmpring.Poly.SetCoefficients(coeffs)
-		for j := range amtout{
+		for j := range amtout {
 			_, err = tmpring.Add(tmpring, &amtout[j].ringvectors[i].rings[0])
 		}
 
-		for j := range amtin{
+		for j := range amtin {
 			_, _ = tmpring.Sub(tmpring, &amtin[j].ringvectors[i].rings[0])
 		}
 
 		if i != 0 {
-			_, _ = tmpring.Add(tmpring, &c.ringvectors[i - 1].rings[0])
+			_, _ = tmpring.Add(tmpring, &c.ringvectors[i-1].rings[0])
 		}
 
 		_, _ = tmpring.Div(tmpring, *bigint.NewInt(2))
@@ -398,7 +568,7 @@ func MakeDeltaMatrix(l, k, beta uint32) []RingMartix {
 	deltav := make([]RingMartix, k)
 	tmp := l
 	for i = 0; i < k; i++ {
-		delta, _ := MakeDeltaVector(tmp % beta, beta)
+		delta, _ := MakeDeltaVector(tmp%beta, beta)
 		deltav[i] = *delta
 		tmp = tmp / beta
 	}
@@ -424,15 +594,15 @@ func LinearMulPoly(a, b *ring.Ring, c []ring.Ring, k int) {
 
 	// c_{k+1} = b * c_k (the last one is dropped)
 	tmpring, _ := ring.CopyRing(&c[0])
-	if k < len(c) - 1 {
+	if k < len(c)-1 {
 		_, _ = tmpring.MulPoly(b, &c[k])
-		c[k + 1] = *tmpring
+		c[k+1] = *tmpring
 	}
 
 	// c_i = b * c_{i-1} + a * c_i
 	for i := k; i > 0; i-- {
 		tmp, _ := ring.CopyRing(tmpring)
-		_, _ = tmp.MulPoly(b, &c[i - 1])
+		_, _ = tmp.MulPoly(b, &c[i-1])
 		_, _ = c[i].MulPoly(a, &c[i])
 		_, _ = c[i].Add(tmp, &c[i])
 	}
@@ -498,7 +668,7 @@ func MakeEj(G *RingMartix, pv [][]ring.Ring, P []RingMartix, beta uint32) (Ev, r
 	return
 }
 
-//zr = x^k * r - sum_j x^j * rho_j
+// zr = x^k * r - sum_j x^j * rho_j
 func ComputeZr(x *ring.Ring, r *RingMartix, rhov []RingMartix) (zr *RingMartix, err error) {
 	xtmp, _ := ring.CopyRing(x)
 	coeffs := make([]bigint.Int, settings.d)

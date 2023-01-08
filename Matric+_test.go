@@ -49,7 +49,7 @@ func setLinearSumSetting(beta, k, l uint32) (Ga, Gb, pr *RingMartix, Pv []RingMa
 	r.Poly, _ = polynomial.NewPolynomial(settings.d, settings.q, settings.nttParams)
 
 	va := beta
-	vb := k * va + settings.m
+	vb := k*va + settings.m
 	Ga, _ = SamMat(va, 0)
 	Gb, _ = SamMat(vb, 0)
 
@@ -94,8 +94,8 @@ func TestLinearEquationArgument(t *testing.T) {
 }
 
 func TestLinearSumProof(t *testing.T) {
-	bv :=[]uint32 {2, 8, 16, 32, 3}
-	kv :=[]uint32 {1, 1, 1, 1, 4}
+	bv := []uint32{2, 8, 16, 32, 3}
+	kv := []uint32{1, 1, 1, 1, 4}
 	l := uint32(0)
 
 	for i := range bv {
@@ -135,6 +135,7 @@ func BenchmarkLinearEquationArgumentM1S1(b *testing.B) {
 		}
 	})
 }
+
 // M = 1; S = 1
 func BenchmarkLinearEquationVerifyM1S1(b *testing.B) {
 	b.ResetTimer()
@@ -153,6 +154,7 @@ func BenchmarkLinearEquationVerifyM1S1(b *testing.B) {
 		}
 	})
 }
+
 // M = 1; S = 2
 func BenchmarkLinearEquationArgumentM1S2(b *testing.B) {
 	b.ResetTimer()
@@ -170,6 +172,7 @@ func BenchmarkLinearEquationArgumentM1S2(b *testing.B) {
 		}
 	})
 }
+
 // M = 1; S = 2
 func BenchmarkLinearEquationVerifyM1S2(b *testing.B) {
 	b.ResetTimer()
@@ -207,6 +210,7 @@ func BenchmarkLinearSumProofN2(b *testing.B) {
 		}
 	})
 }
+
 // N = 2; beta = 2; k = 1
 func BenchmarkLinearSumVerifyN2(b *testing.B) {
 	b.ResetTimer()
@@ -226,6 +230,7 @@ func BenchmarkLinearSumVerifyN2(b *testing.B) {
 		}
 	})
 }
+
 // N = 8; beta = 8; k = 1
 func BenchmarkLinearSumProofN8(b *testing.B) {
 	b.ResetTimer()
@@ -244,6 +249,7 @@ func BenchmarkLinearSumProofN8(b *testing.B) {
 		}
 	})
 }
+
 // N = 8; beta = 8; k = 1
 func BenchmarkLinearSumVerifyN8(b *testing.B) {
 	b.ResetTimer()
@@ -263,6 +269,7 @@ func BenchmarkLinearSumVerifyN8(b *testing.B) {
 		}
 	})
 }
+
 // N = 16; beta = 16; k = 1
 func BenchmarkLinearSumProofN16(b *testing.B) {
 	b.ResetTimer()
@@ -281,6 +288,7 @@ func BenchmarkLinearSumProofN16(b *testing.B) {
 		}
 	})
 }
+
 // N = 16; beta = 16; k = 1
 func BenchmarkLinearSumVerifyN16(b *testing.B) {
 	b.ResetTimer()
@@ -300,6 +308,7 @@ func BenchmarkLinearSumVerifyN16(b *testing.B) {
 		}
 	})
 }
+
 // N = 32; beta = 32; k = 1
 func BenchmarkLinearSumProofN32(b *testing.B) {
 	b.ResetTimer()
@@ -318,6 +327,7 @@ func BenchmarkLinearSumProofN32(b *testing.B) {
 		}
 	})
 }
+
 // N = 32; beta = 32; k = 1
 func BenchmarkLinearSumVerifyN32(b *testing.B) {
 	b.ResetTimer()
@@ -337,6 +347,7 @@ func BenchmarkLinearSumVerifyN32(b *testing.B) {
 		}
 	})
 }
+
 // N = 64; beta = 4; k = 3
 func BenchmarkLinearSumProofN64(b *testing.B) {
 	b.ResetTimer()
@@ -355,6 +366,7 @@ func BenchmarkLinearSumProofN64(b *testing.B) {
 		}
 	})
 }
+
 // N = 64; beta = 4; k = 3
 func BenchmarkLinearSumVerifyN64(b *testing.B) {
 	b.ResetTimer()

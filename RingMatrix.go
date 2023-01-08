@@ -10,15 +10,15 @@ import (
 )
 
 type RingVector struct {
-	rings   		[]ring.Ring
-	nttParams 		*polynomial.NttParams
+	rings     []ring.Ring
+	nttParams *polynomial.NttParams
 }
 
 type RingMartix struct {
-	ringvectors  	[]RingVector
-	col    			uint32
-	row    			uint32
-	nttParams 		*polynomial.NttParams
+	ringvectors []RingVector
+	col         uint32
+	row         uint32
+	nttParams   *polynomial.NttParams
 }
 
 // MulPoly cannot handle same inputs (but we fix this bug in local file)
@@ -47,14 +47,14 @@ func RqRandomB(seed int64, d uint32, B int, single bool) []bigint.Int {
 	var i uint32
 	rand.Seed(seed)
 
-	r := rand.Intn(2 * B + 1)
+	r := rand.Intn(2*B + 1)
 	r = r - B
 	random[0].SetInt(int64(r))
 	random[0].Mod(&random[0], &settings.q)
 
 	for i = 1; i < d; i++ {
 		if !single {
-			r = rand.Intn(2 * B + 1)
+			r = rand.Intn(2*B + 1)
 			r = r - B
 			random[i].SetInt(int64(r))
 			random[i].Mod(&random[i], &settings.q)
@@ -103,8 +103,8 @@ func ConvertIntToRingBits(v uint64, d, precision uint32, q bigint.Int, nttParams
 	var bit uint64 = 1
 	var i uint32
 	coeffs := make([]bigint.Int, d)
-	for i = 0;  i < precision; i++ {
-		if v & bit == bit {
+	for i = 0; i < precision; i++ {
+		if v&bit == bit {
 			coeffs[0].SetInt(int64(1))
 		} else {
 			coeffs[0].SetInt(int64(0))
@@ -119,25 +119,76 @@ func ConvertIntToRingBits(v uint64, d, precision uint32, q bigint.Int, nttParams
 	return bvec, err
 }
 
+// convert v to LSB bits and pack each bit with CRT packing
+func CRTPackInt(v uint64, d, precision uint32, q bigint.Int, nttParams *polynomial.NttParams) (*RingMartix, error) {
+	// build a tmp ring
+	r := new(ring.Ring)
+	r.N = d
+	r.Q = q
+	r.Poly, _ = polynomial.NewPolynomial(d, q, nttParams)
+
+	// build matrix
+	bvec, err := NewRingMartix(1, 1, nttParams)
+	if bvec == nil {
+		return nil, errors.New("NewRingMartix fail")
+	}
+
+	var bit uint64 = 1
+	delta := d / precision
+	var i uint32
+	coeffs := make([]bigint.Int, d)
+	for i = 0; i < precision; i++ {
+		if v&bit == bit {
+			coeffs[i*delta].SetInt(int64(1))
+		} else {
+			coeffs[i*delta].SetInt(int64(0))
+		}
+		bit = bit << 1
+	}
+
+	tmp, _ := ring.CopyRing(r)
+	_ = tmp.Poly.SetCoefficients(coeffs)
+	bvec.ringvectors[0].rings[0] = *tmp
+
+	return bvec, err
+}
+
 // show ring (test function)
-func  ShowRing(r *ring.Ring, coefflen uint32) {
-	if settings.debug {}
+func ShowRing(r *ring.Ring, coefflen uint32) {
+	if settings.debug {
+	}
 	var i uint32
 	coeffs := r.Poly.GetCoefficients()
 	fmt.Printf("( ")
-	for i = 0; i < settings.d && i < coefflen; i ++ {
+	for i = 0; i < settings.d && i < coefflen; i++ {
+		fmt.Printf("%v ", coeffs[i].Value.Int64())
+	}
+	fmt.Printf(")\n")
+}
+
+func ShowRing_plus(r *ring.Ring, coefflen, precision uint32) {
+	if settings.debug {
+	}
+	var i uint32
+	delta := settings.d / precision
+	coeffs := r.Poly.GetCoefficients()
+	fmt.Printf("( ")
+	for i = 0; i < settings.d && i < coefflen; i++ {
+		if i%delta == 0 && i != 0 {
+			fmt.Printf("\n  ")
+		}
 		fmt.Printf("%v ", coeffs[i].Value.Int64())
 	}
 	fmt.Printf(")\n")
 }
 
 // show ring vector (test function)
-func  ShowRingVector(r []ring.Ring, coefflen uint32) {
+func ShowRingVector(r []ring.Ring, coefflen uint32) {
 	var j uint32
 	for i := range r {
 		fmt.Printf("( ")
 		coeffs := r[i].Poly.GetCoefficients()
-		for j = 0; j < settings.d && j < coefflen; j ++ {
+		for j = 0; j < settings.d && j < coefflen; j++ {
 			fmt.Printf("%v ", coeffs[j].Value.Int64())
 		}
 		fmt.Printf(")\n")
@@ -277,6 +328,23 @@ func (m *RingMartix) CopyRingMartix(mat *RingMartix) *RingMartix {
 	m.row = mat.row
 	return m
 }
+func (m *RingMartix) CopyLastRowMartix(mat *RingMartix) *RingMartix {
+	m.ringvectors[0].rings = mat.ringvectors[mat.col-1].rings
+	m.col = 1
+	m.row = mat.row
+	return m
+}
+
+func (m *RingMartix) CopyAllButLastRowMartix(mat *RingMartix) *RingMartix {
+	var i uint32
+	for i = 0; i < mat.col-1; i++ {
+		m.ringvectors[i].rings = mat.ringvectors[i].rings
+	}
+
+	m.col = mat.col - 1
+	m.row = mat.row
+	return m
+}
 
 // combine two n*m and v*m matrix to one (n+v)*m matrix
 func (m *RingMartix) RingMatCombine(m1, m2 *RingMartix) (*RingMartix, error) {
@@ -301,7 +369,7 @@ func (m *RingMartix) RingMatCombine(m1, m2 *RingMartix) (*RingMartix, error) {
 		m.ringvectors[i].rings = m1.ringvectors[i].rings
 	}
 	for i = 0; i < m2.col; i++ {
-		m.ringvectors[i + m1.col].rings = m2.ringvectors[i].rings
+		m.ringvectors[i+m1.col].rings = m2.ringvectors[i].rings
 	}
 
 	m.col = m1.col + m2.col
@@ -365,6 +433,7 @@ func (m *RingMartix) RingMatAdd(m1, m2 *RingMartix) (*RingMartix, error) {
 	for i = 0; i < m1.col; i++ {
 		for j = 0; j < m1.row; j++ {
 			_, err = m.ringvectors[i].rings[j].Add(&m1.ringvectors[i].rings[j], &m2.ringvectors[i].rings[j])
+			//			_, err = m.ringvectors[i].rings[j].Mod(&m.ringvectors[i].rings[j], settings.q)
 		}
 	}
 
@@ -387,6 +456,7 @@ func (m *RingMartix) RingMatSub(m1, m2 *RingMartix) (*RingMartix, error) {
 	for i = 0; i < m1.col; i++ {
 		for j = 0; j < m1.row; j++ {
 			_, err = m.ringvectors[i].rings[j].Sub(&m1.ringvectors[i].rings[j], &m2.ringvectors[i].rings[j])
+			_, err = m.ringvectors[i].rings[j].Mod(&m.ringvectors[i].rings[j], settings.q)
 		}
 	}
 
@@ -405,6 +475,7 @@ func (m *RingMartix) RingMatScalarMul(r *ring.Ring, mat *RingMartix) (*RingMarti
 	for i = 0; i < mat.col; i++ {
 		for j = 0; j < mat.row; j++ {
 			_, err = m.ringvectors[i].rings[j].MulPoly(&mat.ringvectors[i].rings[j], r)
+			_, err = m.ringvectors[i].rings[j].Mod(&m.ringvectors[i].rings[j], settings.q)
 			err = nil
 		}
 	}
@@ -422,14 +493,18 @@ func (m *RingMartix) RingMatMul(m1, m2 *RingMartix) (*RingMartix, error) {
 	if m1.row != m2.col {
 		return nil, errors.New("matrix size not multipliable")
 	}
+	zero := make([]bigint.Int, settings.d)
 
 	var err error
 	var i, j, k uint32
 	for i = 0; i < m1.col; i++ {
 		for j = 0; j < m2.row; j++ {
+			sum, _ := ring.CopyRing(&(m.ringvectors[i].rings[j]))
+			_ = sum.Poly.SetCoefficients(zero)
+
 			for k = 0; k < m1.row; k++ {
 				tmp, _ := ring.CopyRing(&(m.ringvectors[i].rings[j]))
-				_ = tmp.Poly.SetCoefficients(m.ringvectors[i].rings[j].GetCoefficients())
+				_ = tmp.Poly.SetCoefficients(zero)
 				// there is a bug in MulPoly function to handle same inputs
 				if MulPolyBug && m1 == m2 {
 					m1tmp, _ := ring.CopyRing(&m1.ringvectors[i].rings[k])
@@ -438,9 +513,10 @@ func (m *RingMartix) RingMatMul(m1, m2 *RingMartix) (*RingMartix, error) {
 				} else {
 					_, err = tmp.MulPoly(&m1.ringvectors[i].rings[k], &m2.ringvectors[k].rings[j])
 				}
-
-				_, err = m.ringvectors[i].rings[j].Add(&m.ringvectors[i].rings[j], tmp)
+				_, err = sum.Add(sum, tmp)
 			}
+
+			_ = m.ringvectors[i].rings[j].Poly.SetCoefficients(sum.GetCoefficients())
 		}
 	}
 

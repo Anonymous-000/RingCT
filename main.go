@@ -9,15 +9,28 @@ import (
 
 func main() {
 
-	d := uint32(1)
-	n := uint32(1)
-	m := uint32(0)
-	w := uint32(1)
+	//d := uint32(1)
+	//n := uint32(1)
+	//m := uint32(0)
+	//w := uint32(1)
+
 	//q := bigint.NewIntFromString("8865920799731713")
-	q := bigint.NewIntFromString("257")
+	//q := bigint.NewIntFromString("257")
 	//q := bigint.NewIntFromString("2147221513")
 	//q := bigint.NewIntFromString("65537")
-	SetSettings(d, n, m, w, 4, *q, 8, 0, true)
+	//SetSettings(d, n, m, w, 4, *q, 8, 0, true)
+
+	d := uint32(256)
+	n := uint32(4)
+	m := uint32(8)
+	w := uint32(44)
+	//q := bigint.NewIntFromString("4294962689") // 2^32 - 2^12 - 2^9 + 1
+	q := bigint.NewIntFromString("65537")
+	SetSettings(d, n, m, w, w, 4, *q, 1, 10, false)
+	LinearEquationArgument_plus_Test()
+
+	//CRTPackIntTest()
+	//MintTest_plus()
 
 	//RingMatAddTest()
 	//RingMatMulTest()
@@ -34,7 +47,7 @@ func main() {
 	//MintTest()
 	//BinaryCommitTest()
 	//BalanceProofTest()
-	LinearEquationArgumentTest()
+	//LinearEquationArgumentTest()
 	//OneOutOfManyProofTest()
 	//LinearSumProofTest()
 
@@ -54,7 +67,7 @@ func LinearSumProofTest() {
 	r.Poly, _ = polynomial.NewPolynomial(settings.d, settings.q, settings.nttParams)
 
 	va := beta
-	vb := k * va + settings.m
+	vb := k*va + settings.m
 	Ga, _ := SamMat(va, 0)
 	Gb, _ := SamMat(vb, 0)
 
@@ -72,8 +85,8 @@ func LinearSumProofTest() {
 		Pv[i] = *Pu
 		rv[i] = *pr
 
-		DebugPrint("Pu" + fmt.Sprint(i), Pv[i])
-		DebugPrint("pr" + fmt.Sprint(i), rv[i])
+		DebugPrint("Pu"+fmt.Sprint(i), Pv[i])
+		DebugPrint("pr"+fmt.Sprint(i), rv[i])
 	}
 
 	ComB, f, zb, zr, Ev, x, _ := LinearSumProof(Ga, Gb, &rv[l], l, k, beta, Pv, 20, 14)
@@ -84,10 +97,9 @@ func LinearSumProofTest() {
 
 func LinearEquationArgumentTest() {
 	va := settings.precision
-	vb := 4 * va + settings.m
+	vb := 4*va + settings.m
 	Ga, _ := SamMat(va, 0)
 	Gb, _ := SamMat(vb, 0)
-
 
 	Av := make([]RingMartix, 1)
 	amtin := make([]RingMartix, 1)
@@ -121,7 +133,7 @@ func OneOutOfManyProofTest() {
 	r.Poly, _ = polynomial.NewPolynomial(settings.d, settings.q, settings.nttParams)
 
 	va := beta
-	vb := 2 * k * va + settings.m
+	vb := 2*k*va + settings.m
 	Ga, _ := SamMat(va, 0)
 	Gb, _ := SamMat(vb, 0)
 
@@ -139,8 +151,8 @@ func OneOutOfManyProofTest() {
 		Pv[i] = *Pu
 		rv[i] = *pr
 
-		DebugPrint("Pu" + fmt.Sprint(i), Pv[i])
-		DebugPrint("pr" + fmt.Sprint(i), rv[i])
+		DebugPrint("Pu"+fmt.Sprint(i), Pv[i])
+		DebugPrint("pr"+fmt.Sprint(i), rv[i])
 	}
 
 	ComB, f, zb, zr, Ev, x, _ := OneOutOfManyProof(Ga, Gb, &rv[l], l, k, beta, Pv, 20, 14)
@@ -152,10 +164,9 @@ func OneOutOfManyProofTest() {
 
 func BalanceProofTest() {
 	va := settings.precision + settings.m
-	vb := 6 * va - 2 + settings.m
+	vb := 6*va - 2 + settings.m
 	Ga, _ := SamMat(va, 0)
 	Gb, _ := SamMat(vb, 0)
-
 
 	Av := make([]RingMartix, 1)
 	amtin := make([]RingMartix, 1)
@@ -227,7 +238,7 @@ func SamMatTest() {
 	v := uint32(1)
 	G, _ := SamMat(v, 0)
 	fmt.Printf("%v\n", G.ringvectors[0].rings[0].Poly.GetCoefficients()[0])
-	fmt.Printf("%v\n", G.ringvectors[G.col - 1].rings[G.row - 1].Poly.GetCoefficients()[settings.d - 1])
+	fmt.Printf("%v\n", G.ringvectors[G.col-1].rings[G.row-1].Poly.GetCoefficients()[settings.d-1])
 }
 
 func CommitmentTest() {
@@ -250,7 +261,7 @@ func CommitmentTest() {
 	}
 
 	com, rnd, _ := Commitment(G, msg, -1)
-	fmt.Printf("%v\n", com.ringvectors[com.col - 1].rings[0].Poly.GetCoefficients())
+	fmt.Printf("%v\n", com.ringvectors[com.col-1].rings[0].Poly.GetCoefficients())
 	for i = 0; i < rnd.col; i++ {
 		fmt.Printf("%v\n", rnd.ringvectors[i].rings[0].Poly.GetCoefficients())
 	}
@@ -278,18 +289,18 @@ func BinaryCommitTest() {
 	coeffs[0].SetInt(int64(1))
 
 	bits, _ := ConvertIntToRingBits(amt, settings.d, settings.precision, settings.q, settings.nttParams)
-	G, _ := SamMat(64 * 2, 0)
+	G, _ := SamMat(64*2, 0)
 	A, B, ra, rb, a, _ := BinaryCommit(G, bits, 100, 10)
 	fmt.Printf("%v\n", A.ringvectors[0].rings[0].Poly.GetCoefficients())
-	fmt.Printf("%v\n\n", A.ringvectors[A.col - 1].rings[0].Poly.GetCoefficients())
+	fmt.Printf("%v\n\n", A.ringvectors[A.col-1].rings[0].Poly.GetCoefficients())
 	fmt.Printf("%v\n", B.ringvectors[0].rings[0].Poly.GetCoefficients())
-	fmt.Printf("%v\n\n", B.ringvectors[B.col - 1].rings[0].Poly.GetCoefficients())
+	fmt.Printf("%v\n\n", B.ringvectors[B.col-1].rings[0].Poly.GetCoefficients())
 	fmt.Printf("%v\n", ra.ringvectors[0].rings[0].Poly.GetCoefficients())
-	fmt.Printf("%v\n\n", ra.ringvectors[ra.col - 1].rings[0].Poly.GetCoefficients())
+	fmt.Printf("%v\n\n", ra.ringvectors[ra.col-1].rings[0].Poly.GetCoefficients())
 	fmt.Printf("%v\n", rb.ringvectors[0].rings[0].Poly.GetCoefficients())
-	fmt.Printf("%v\n\n", rb.ringvectors[rb.col - 1].rings[0].Poly.GetCoefficients())
+	fmt.Printf("%v\n\n", rb.ringvectors[rb.col-1].rings[0].Poly.GetCoefficients())
 	fmt.Printf("%v\n", a.ringvectors[0].rings[0].Poly.GetCoefficients())
-	fmt.Printf("%v\n", a.ringvectors[a.col - 1].rings[0].Poly.GetCoefficients())
+	fmt.Printf("%v\n", a.ringvectors[a.col-1].rings[0].Poly.GetCoefficients())
 }
 
 func RingMatAddTest() {
@@ -341,7 +352,6 @@ func RingMatMulTest() {
 	r.Poly, _ = polynomial.NewPolynomial(n, *q, nttParams)
 	coeffs := make([]bigint.Int, n)
 
-
 	m1, _ := NewRingMartix(one, two, nttParams)
 	m2, _ := NewRingMartix(two, one, nttParams)
 	m, _ := NewRingMartix(one, one, nttParams)
@@ -388,7 +398,6 @@ func RingMatScalarMulTest() {
 	coeffs := make([]bigint.Int, n)
 	coeffs[0].SetInt(int64(1))
 	_ = r.Poly.SetCoefficients(coeffs)
-
 
 	m, _ := NewRingMartix(col, row, nttParams)
 	var i, j, k uint32
@@ -442,7 +451,6 @@ func MulPolyTest() {
 
 	tmp, _ := ring.CopyRing(r)
 	_ = tmp.Poly.SetCoefficients(coeffs)
-
 
 	fmt.Printf("%v\n\n", tmp.Poly.GetCoefficients())
 	_, _ = tmp.MulPoly(tmp, r)
@@ -554,4 +562,74 @@ func MakePijTest() {
 		cef := piv[i].Poly.GetCoefficients()
 		fmt.Printf("%v\n", cef[0])
 	}
+}
+
+func CRTPackIntTest() {
+	amt := uint64(95)
+	bvec, err := CRTPackInt(amt, settings.d, settings.precision, settings.q, settings.nttParams)
+
+	if err != nil {
+		fmt.Printf("error\n")
+		return
+	}
+	ShowRing_plus(&bvec.ringvectors[0].rings[0], settings.d, settings.precision)
+}
+
+func MintTest_plus() {
+	amt := uint64(5)
+	coeffs := make([]bigint.Int, settings.d)
+	coeffs[0].SetInt(int64(1))
+
+	G, _ := SamMat_plus(0)
+	B, r, mbits, _ := Mint_plus(G, amt)
+
+	y, _ := ring.CopyRing(&G.ringvectors[0].rings[0])
+	_ = y.Poly.SetCoefficients(coeffs)
+
+	fmt.Printf("%v\n", UMCOpen(G, B, mbits, r, y))
+	ShowRing_plus(&mbits.ringvectors[0].rings[0], settings.d, settings.precision)
+}
+
+func LinearEquationArgument_plus_Test() {
+	M := 2
+
+	r := new(ring.Ring)
+	r.N = settings.d
+	r.Q = settings.q
+	r.Poly, _ = polynomial.NewPolynomial(settings.d, settings.q, settings.nttParams)
+
+	coeffs := make([]bigint.Int, settings.d)
+	zeta := make([]ring.Ring, M)
+	Av := make([]RingMartix, M)
+	amtin := make([]RingMartix, M)
+	rav := make([]RingMartix, M)
+
+	vout := make([]uint64, 2)
+
+	UMC_G, _ := SamMat_plus(0)
+
+	for i := 0; i < M; i++ {
+		coeffs[0].SetInt(int64(i + 1))
+		tmpring, _ := ring.CopyRing(r)
+		_ = tmpring.Poly.SetCoefficients(coeffs)
+		zeta[i] = *tmpring
+
+		A, rbin, bin, _ := Mint_plus(UMC_G, 1)
+		amtin[i] = *bin
+		rav[i] = *rbin
+		Av[i] = *A
+	}
+	vout[0] = 1
+	vout[1] = 1
+
+	ComF, f, zg, z, Bv, zbv, x, err := LinearEquationArgument_plus(UMC_G, Av, amtin, rav, vout, 10, 1, 1, 1, 1)
+	if err != nil {
+		return
+	}
+
+	rst, err := LinearEquationVerify_plus(UMC_G, ComF, f, zg, z, x, Av, Bv, zbv)
+	if err != nil {
+		return
+	}
+	fmt.Printf("%v\n", rst)
 }
