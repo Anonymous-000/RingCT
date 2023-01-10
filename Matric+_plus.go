@@ -13,7 +13,7 @@ Therefore, we only implement the LinearEquationArgument here.
 The Unbalanced Linear Sum Proof runs LinearSumProof function under the MatRiCT+ settings directly.
 */
 
-func LinearEquationArgument_plus(UMC_G *RingMartix, Av, amtin, rav []RingMartix, vout []uint64, Bd, Br0, Br1, Brt, Brd int) (ComF, f, zg, z *RingMartix, Bv, zbv []RingMartix, x *ring.Ring, err error) {
+func LinearEquationArgument_plus(UMC_G *RingMartix, Av, amtin, rav []RingMartix, vout []uint64, Bd, Br0, Br1, Brt, Brd int) (ComF, f, zg, z *RingMartix, Bv, zbv []RingMartix, x *ring.Ring, zeta []ring.Ring, err error) {
 	var i uint32
 	S := uint32(len(vout))
 	M := uint32(len(amtin))
@@ -24,7 +24,7 @@ func LinearEquationArgument_plus(UMC_G *RingMartix, Av, amtin, rav []RingMartix,
 		msg = append(msg, Av[i].ToBytes()...)
 	}
 	//fmt.Printf("%v\n", md5.Sum(msg))
-	zeta := make([]ring.Ring, M)
+	zeta = make([]ring.Ring, M)
 	BuildZeta(msg, zeta, &UMC_G.ringvectors[0].rings[0])
 	//ShowRing(&zeta[0], settings.d)
 
@@ -297,7 +297,7 @@ func LinearEquationArgument_plusII(x *ring.Ring, c, d, r0, r1, rd *RingMartix, r
 }
 
 // Algorithm 2 verifier's side
-func LinearEquationVerify_plus(UMC_G, ComF, f, zg, z *RingMartix, x *ring.Ring, Av, Bv, zbv []RingMartix) (result bool, err error) {
+func LinearEquationVerify_plus(UMC_G, ComF, f, zg, z *RingMartix, x *ring.Ring, zeta []ring.Ring, Av, Bv, zbv []RingMartix) (result bool, err error) {
 	var i uint32
 	S := uint32(len(Bv))
 	M := uint32(len(Av))
@@ -315,9 +315,6 @@ func LinearEquationVerify_plus(UMC_G, ComF, f, zg, z *RingMartix, x *ring.Ring, 
 		msg = append(msg, Av[i].ToBytes()...)
 	}
 	//fmt.Printf("%v\n", md5.Sum(msg))
-	zeta := make([]ring.Ring, M)
-	BuildZeta(msg, zeta, &UMC_G.ringvectors[0].rings[0])
-	//ShowRing(&zeta[0], settings.d)
 
 	// C = sum B_i - sum A_i
 	ComC, err := NewRingMartix(UMC_G.col, 1, nttParams)

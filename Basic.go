@@ -76,7 +76,7 @@ func Hash(msg []byte, x *ring.Ring) {
 	//coeffs := make([]bigint.Int, settings.d)
 	//coeffs[0].SetInt(1)
 	//
-	//_ = x.Poly.SetCoefficients(coeffs)
+	_ = x.Poly.SetCoefficients(coeffs)
 	return
 }
 

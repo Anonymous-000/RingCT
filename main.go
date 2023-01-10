@@ -25,8 +25,8 @@ func main() {
 	m := uint32(8)
 	w := uint32(44)
 	//q := bigint.NewIntFromString("4294962689") // 2^32 - 2^12 - 2^9 + 1
-	q := bigint.NewIntFromString("65537")
-	SetSettings(d, n, m, w, w, 4, *q, 1, 10, false)
+	q := bigint.NewIntFromString("17112760193") // 2^34 - 2^26 - 2^7 + 1
+	SetSettings(d, n, m, w, 64, 64, *q, 8, 1, false)
 	LinearEquationArgument_plus_Test()
 
 	//CRTPackIntTest()
@@ -592,6 +592,7 @@ func MintTest_plus() {
 
 func LinearEquationArgument_plus_Test() {
 	M := 2
+	S := 1
 
 	r := new(ring.Ring)
 	r.N = settings.d
@@ -599,12 +600,11 @@ func LinearEquationArgument_plus_Test() {
 	r.Poly, _ = polynomial.NewPolynomial(settings.d, settings.q, settings.nttParams)
 
 	coeffs := make([]bigint.Int, settings.d)
-	zeta := make([]ring.Ring, M)
 	Av := make([]RingMartix, M)
 	amtin := make([]RingMartix, M)
 	rav := make([]RingMartix, M)
 
-	vout := make([]uint64, 1)
+	vout := make([]uint64, S)
 
 	UMC_G, _ := SamMat_plus(0)
 
@@ -612,7 +612,6 @@ func LinearEquationArgument_plus_Test() {
 		coeffs[0].SetInt(int64(i + 1))
 		tmpring, _ := ring.CopyRing(r)
 		_ = tmpring.Poly.SetCoefficients(coeffs)
-		zeta[i] = *tmpring
 
 		A, rbin, bin, _ := Mint_plus(UMC_G, uint64(i+1))
 		amtin[i] = *bin
@@ -621,12 +620,12 @@ func LinearEquationArgument_plus_Test() {
 	}
 	vout[0] = 3
 
-	ComF, f, zg, z, Bv, zbv, x, err := LinearEquationArgument_plus(UMC_G, Av, amtin, rav, vout, 10, 1, 1, 1, 1)
+	ComF, f, zg, z, Bv, zbv, x, zeta, err := LinearEquationArgument_plus(UMC_G, Av, amtin, rav, vout, 20, 10, 1, 10, 10)
 	if err != nil {
 		return
 	}
 
-	rst, err := LinearEquationVerify_plus(UMC_G, ComF, f, zg, z, x, Av, Bv, zbv)
+	rst, err := LinearEquationVerify_plus(UMC_G, ComF, f, zg, z, x, zeta, Av, Bv, zbv)
 	if err != nil {
 		return
 	}

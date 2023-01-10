@@ -18,6 +18,20 @@ func setTestSettings() {
 	SetSettings(d, n, m, w, w_zeta, 64, *q, 8, 1, false)
 }
 
+func setTestSettings_plus() {
+	d := uint32(256)
+	n := uint32(4)
+	m := uint32(8)
+	w := uint32(44)
+	w_zeta := uint32(56)
+	//q := bigint.NewIntFromString("8865920799731713")	// polynomial.GenerateNTTParams(d, q) never return, may due to factorization
+	//q := bigint.NewIntFromString("2147221513")		// Not NTT friendly (N != 1 mod 2*d)
+	//q := bigint.NewIntFromString("257")				// Fermat number (F3)
+	//q := bigint.NewIntFromString("65537") // Fermat number (F4) (no big performance difference with F3)
+	q := bigint.NewIntFromString("17112760193") // 2^34 - 2^26 - 2^7 + 1
+	SetSettings(d, n, m, w, w_zeta, 64, *q, 8, 1, false)
+}
+
 // MatRiCT+ settings
 func setTestSettingsplus() {
 	d := uint32(256)
@@ -25,7 +39,7 @@ func setTestSettingsplus() {
 	m := uint32(10)
 	w := uint32(44)
 	w_zeta := uint32(44)
-	q := bigint.NewIntFromString("3489661057") // Fermat number (F4) (no big performance difference with F3)
+	q := bigint.NewIntFromString("65537") // Fermat number (F4) (no big performance difference with F3)
 	SetSettings(d, n, m, w, w_zeta, 64, *q, 1, 1, false)
 }
 
